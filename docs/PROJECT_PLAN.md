@@ -19,14 +19,20 @@
 
 ---
 
-## 2. What's Built in Step 1 (දැන් හදලා තියෙන දේවල්)
+## 2. What's Built in Step 1 & Lead Capture Flow (දැන් හදලා තියෙන දේවල්)
 
 ✅ **Dashboard** — KPI cards (new leads, follow-ups today, active deals, won revenue), recent leads, leads-by-source chart, today's follow-ups.
-✅ **Leads** — full table with **search + status filter + source filter**; lead detail page with contact actions (Call / WhatsApp), conversion progress stepper, follow-ups & activity timeline.
+✅ **Leads Management** — full table with **search + status filter + source filter**; lead detail page with contact actions (Call / WhatsApp / Send Form), conversion progress stepper, follow-ups & activity timeline.
+✅ **Direct Lead Capture & WhatsApp Flow (අලුතින් එක් කළ flow එක)**:
+  - **Public Intake Form (`/intake`)**: Clean mobile-friendly form to send to leads over WhatsApp. Collects name, phone, email, hotel name, location, requirements & notes.
+  - **Leads API (`/api/leads`)**: POST to capture leads, GET to fetch them. Persists safely into local storage until PMS database connection is made in Step 3.
+  - **"Add Lead" Manual Entry**: Quick modal in the panel to enter any incoming lead (name, phone, email, source).
+  - **"Send Form via WhatsApp" Action**: One-click deep link (`wa.me`) that sends the prefilled message + `/intake` form link to the lead's WhatsApp number.
+  - **"Copy Intake Link"**: Easy button to copy the form URL for social media bios or quick chats.
 ✅ **Sales Pipeline** — kanban board: *New Inquiry → Contacted → Negotiation → Won / Lost*, with deal values (LKR/mo) and owners.
 ✅ **Follow-ups** — grouped *Overdue / Today / Upcoming*, one-click done toggle, typed actions (call, WhatsApp, email, meeting, SMS).
 ✅ **Settings & Integrations** — connection cards for **Facebook Lead Ads**, **Hotel Mate PMS API**, WhatsApp Business, Instagram + sales team + owner contact.
-✅ **Demo data layer** — realistic Sri Lankan sample data generated in `lib/data.ts` (dates always relative to "now", so the demo always looks live). No database needed yet — the panel runs standalone for demos.
+✅ **Demo data layer** — realistic Sri Lankan sample data generated in `lib/data.ts` + dynamic captures merged seamlessly.
 
 ### UI / Design
 - Colors match hotelmate.co.uk: cyan-blue primary (`#00AEEF`), dark petrol sidebar (`#0C1E21`), light neutral backgrounds.

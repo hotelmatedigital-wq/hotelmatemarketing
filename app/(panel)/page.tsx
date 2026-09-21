@@ -14,13 +14,15 @@ import {
   StatusBadge,
   SourceBadge,
 } from "@/components/ui";
-import { deals, followUps, leads } from "@/lib/data";
+import { deals, followUps } from "@/lib/data";
+import { getAllLeads } from "@/lib/store";
 import { fmtMoney, fmtTime, isToday, relTime } from "@/lib/format";
 
 // Always render fresh so demo dates/relative times never go stale.
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const leads = await getAllLeads();
   const newThisWeek = leads.filter(
     (l) =>
       Date.now() - new Date(l.createdAt).getTime() < 7 * 24 * 3600 * 1000

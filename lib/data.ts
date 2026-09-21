@@ -441,6 +441,7 @@ export const sourceLabels: Record<LeadSource, string> = {
   whatsapp: "WhatsApp",
   website: "Website",
   walkin: "Walk-in / Referral",
+  manual: "Manual Entry",
 };
 
 export const followUpLabels: Record<FollowUpType, string> = {

@@ -5,14 +5,15 @@ Next.js marketing panel for [Hotel Mate](https://www.hotelmate.co.uk/) — monit
 **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · lucide icons
 **Brand:** hotelmate.co.uk palette — primary `#00AEEF`, dark `#0C1E21`, neutral `#E5E5E5`
 
-## Features (Step 1)
+## Features
 
 - 📊 **Dashboard** — KPIs, recent leads, leads by source, today's follow-ups
-- 🎯 **Leads** — search + status/source filters, detail view with Call/WhatsApp actions & conversion stepper
+- 🎯 **Leads Management** — search + status/source filters, detail view with Call/WhatsApp/Send Form actions
+- 📝 **Intake Form (`/intake`) & WhatsApp Flow** — shareable public form; leads save instantly to the panel with prefilled WhatsApp deep-links
 - 📈 **Sales Pipeline** — kanban: Inquiry → Contacted → Negotiation → Won/Lost
 - ⏰ **Follow-ups** — overdue / today / upcoming with done toggles
 - ⚙️ **Settings** — Facebook Lead Ads, Hotel Mate PMS API, WhatsApp & Instagram integration cards
-- Demo data baked in (`lib/data.ts`) — runs standalone, no DB needed yet
+- Demo data baked in + file persistence for newly captured leads (`/api/leads`)
 
 ## Run
 

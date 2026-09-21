@@ -19,11 +19,9 @@ import {
   StatusBadge,
   STATUS_LABELS,
 } from "@/components/ui";
-import {
-  followUpLabels,
-  followUps,
-  getLeadById,
-} from "@/lib/data";
+import { followUpLabels, followUps } from "@/lib/data";
+import { getLead } from "@/lib/store";
+import SendIntakeButton from "@/components/SendIntakeButton";
 import { fmtDateYear, fmtMoney, fmtTime, isToday, relTime } from "@/lib/format";
 
 const STEPS = ["new", "contacted", "qualified", "proposal", "won"] as const;
@@ -37,7 +35,7 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const lead = getLeadById(id);
+  const lead = await getLead(id);
   if (!lead) notFound();
 
   const leadFollowUps = followUps
@@ -146,6 +144,7 @@ export default async function LeadDetailPage({
               >
                 <MessageCircle className="size-3.5" /> WhatsApp
               </a>
+              <SendIntakeButton name={lead.name} phone={lead.phone} />
             </div>
           </Card>
 

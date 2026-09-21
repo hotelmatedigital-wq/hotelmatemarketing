@@ -11,7 +11,8 @@ export type LeadSource =
   | "instagram"
   | "whatsapp"
   | "website"
-  | "walkin";
+  | "walkin"
+  | "manual";
 
 export type LeadStatus =
   | "new"

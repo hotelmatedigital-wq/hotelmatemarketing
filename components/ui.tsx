@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Globe, MessageCircle, DoorOpen } from "lucide-react";
+import { Globe, MessageCircle, DoorOpen, UserPlus } from "lucide-react";
 import { FacebookIcon, InstagramIcon } from "./brand-icons";
 import type { LeadSource, LeadStatus } from "@/lib/types";
 import { sourceLabels } from "@/lib/data";
@@ -131,6 +131,7 @@ const SOURCE_ICONS: Record<
   whatsapp: MessageCircle,
   website: Globe,
   walkin: DoorOpen,
+  manual: UserPlus,
 };
 
 const SOURCE_COLORS: Record<LeadSource, string> = {
@@ -139,6 +140,7 @@ const SOURCE_COLORS: Record<LeadSource, string> = {
   whatsapp: "bg-emerald-50 text-emerald-600",
   website: "bg-mist-100 text-ink-700",
   walkin: "bg-orange-50 text-orange-600",
+  manual: "bg-mist-100 text-ink-700",
 };
 
 export function SourceBadge({ source }: { source: LeadSource }) {

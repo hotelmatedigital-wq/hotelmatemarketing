@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "Hotel Mate · Marketing Panel",
+  title: {
+    default: "Hotel Mate · Marketing Panel",
+    template: "%s · Hotel Mate",
+  },
   description:
     "Hotel Mate Marketing Panel — social media lead monitoring, sales pipeline & follow-ups.",
 };
@@ -13,9 +15,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body>
-        <AppShell>{children}</AppShell>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
