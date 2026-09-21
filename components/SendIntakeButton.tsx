@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
-import { intakeFormMessage, waLink } from "@/lib/wa";
+import { generateLeadWhatsAppMessage, waLink } from "@/lib/wa";
 
 /**
  * Opens WhatsApp addressed to the lead's number with the intake-form link
@@ -11,15 +11,25 @@ import { intakeFormMessage, waLink } from "@/lib/wa";
 export default function SendIntakeButton({
   name,
   phone,
+  leadId,
 }: {
   name: string;
   phone: string;
+  leadId?: string;
 }) {
   const [href, setHref] = useState<string | null>(null);
 
   useEffect(() => {
-    setHref(waLink(phone, intakeFormMessage(name, window.location.origin)));
-  }, [name, phone]);
+    const origin = window.location.origin;
+    const formUrl = leadId
+      ? `${origin}/intake?leadId=${encodeURIComponent(leadId)}`
+      : `${origin}/intake`;
+    const message = generateLeadWhatsAppMessage({
+      clientName: name,
+      formUrl,
+    });
+    setHref(waLink(phone, message));
+  }, [name, phone, leadId]);
 
   return (
     <a

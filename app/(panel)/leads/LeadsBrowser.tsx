@@ -10,7 +10,9 @@ import {
   Plus,
   Search,
   MessageCircle,
+  Sparkles,
   X,
+  FileCheck2,
 } from "lucide-react";
 import {
   Card,
@@ -22,7 +24,7 @@ import {
 import AddLeadModal from "@/components/AddLeadModal";
 import { sourceLabels } from "@/lib/data";
 import { fmtMoney, relTime } from "@/lib/format";
-import { intakeFormMessage, waLink } from "@/lib/wa";
+import { generateLeadWhatsAppMessage, waLink } from "@/lib/wa";
 import type { Lead, LeadSource } from "@/lib/types";
 
 const STATUS_FILTERS: Array<LeadStatusFilter> = [
@@ -46,6 +48,9 @@ export default function LeadsBrowser({
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatusFilter>("all");
   const [source, setSource] = useState<LeadSource | "all">("all");
+  const [formFilter, setFormFilter] = useState<"all" | "submitted" | "pending">(
+    "all"
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [captured, setCaptured] = useState<Lead | null>(null);
   const [copied, setCopied] = useState(false);
@@ -54,6 +59,9 @@ export default function LeadsBrowser({
     return leads.filter((l) => {
       if (status !== "all" && l.status !== status) return false;
       if (source !== "all" && l.source !== source) return false;
+      if (formFilter === "submitted" && l.formStatus !== "submitted")
+        return false;
+      if (formFilter === "pending" && l.formStatus !== "pending") return false;
       const q = query.trim().toLowerCase();
       if (!q) return true;
       return (
@@ -63,7 +71,7 @@ export default function LeadsBrowser({
         l.campaign.toLowerCase().includes(q)
       );
     });
-  }, [leads, query, status, source]);
+  }, [leads, query, status, source, formFilter]);
 
   const intakeUrl =
     typeof window !== "undefined"
@@ -107,6 +115,25 @@ export default function LeadsBrowser({
           ))}
         </select>
 
+        <select
+          value={formFilter}
+          onChange={(e) =>
+            setFormFilter(e.target.value as "all" | "submitted" | "pending")
+          }
+          className="rounded-lg border border-mist-200 bg-white px-3 py-2 text-sm font-medium text-ink-900 outline-none"
+        >
+          <option value="all">All form states</option>
+          <option value="submitted">Assessment Submitted</option>
+          <option value="pending">Form Pending</option>
+        </select>
+
+        <Link
+          href="/generator"
+          className="flex items-center gap-1.5 rounded-lg border border-brand-300 bg-brand-50 px-3.5 py-2 text-sm font-bold text-brand-700 hover:bg-brand-100"
+        >
+          <Sparkles className="size-4" /> FB & IG Generator
+        </Link>
+
         <button
           onClick={copyIntakeLink}
           className="flex items-center gap-1.5 rounded-lg border border-mist-200 bg-white px-3.5 py-2 text-sm font-semibold text-ink-900 hover:bg-mist-50"
@@ -116,7 +143,7 @@ export default function LeadsBrowser({
           ) : (
             <Copy className="size-4" />
           )}
-          {copied ? "Copied!" : "Copy Intake Link"}
+          {copied ? "Copied!" : "Copy Form Link"}
         </button>
 
         <button
@@ -138,12 +165,13 @@ export default function LeadsBrowser({
           <a
             href={waLink(
               captured.phone,
-              intakeFormMessage(
-                captured.name,
-                typeof window !== "undefined"
-                  ? window.location.origin
-                  : "https://marketing.hotelmate.app"
-              )
+              generateLeadWhatsAppMessage({
+                clientName: captured.name,
+                formUrl:
+                  typeof window !== "undefined"
+                    ? `${window.location.origin}/intake?leadId=${captured.id}`
+                    : `https://marketing.hotelmate.app/intake?leadId=${captured.id}`,
+              })
             )}
             target="_blank"
             rel="noreferrer"
@@ -186,14 +214,14 @@ export default function LeadsBrowser({
       {/* table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[980px] text-left text-sm">
             <thead>
               <tr className="border-b border-mist-200 bg-mist-50 text-[11px] font-semibold uppercase tracking-wider text-ink-900/50">
-                <th className="px-5 py-3">Lead</th>
+                <th className="px-5 py-3">Lead & Property</th>
                 <th className="px-4 py-3">Source</th>
+                <th className="px-4 py-3">Assessment</th>
                 <th className="px-4 py-3">Campaign</th>
-                <th className="px-4 py-3">Interest</th>
-                <th className="px-4 py-3 text-right">Budget</th>
+                <th className="px-4 py-3 text-right">Est. Budget</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Owner</th>
                 <th className="px-4 py-3">Received</th>
@@ -201,44 +229,63 @@ export default function LeadsBrowser({
               </tr>
             </thead>
             <tbody className="divide-y divide-mist-100">
-              {filtered.map((lead) => (
-                <tr
-                  key={lead.id}
-                  onClick={() => router.push(`/leads/${lead.id}`)}
-                  className="cursor-pointer transition-colors hover:bg-brand-50/40"
-                >
-                  <td className="px-5 py-3.5">
-                    <p className="font-semibold text-ink-900">{lead.hotel}</p>
-                    <p className="text-xs text-ink-900/50">
-                      {lead.name} · {lead.location}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <SourceBadge source={lead.source} />
-                  </td>
-                  <td className="max-w-40 truncate px-4 py-3.5 text-xs text-ink-900/60">
-                    {lead.campaign}
-                  </td>
-                  <td className="max-w-48 truncate px-4 py-3.5 text-xs text-ink-900/60">
-                    {lead.interest}
-                  </td>
-                  <td className="px-4 py-3.5 text-right text-xs font-semibold text-ink-900">
-                    {lead.budgetLKR ? fmtMoney(lead.budgetLKR) : "—"}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <StatusBadge status={lead.status} />
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <OwnerChip name={lead.assignedTo} />
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3.5 text-xs text-ink-900/50">
-                    {relTime(lead.createdAt)}
-                  </td>
-                  <td className="px-2 py-3.5 text-ink-900/30">
-                    <ChevronRight className="size-4" />
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((lead) => {
+                const isSubmitted = lead.formStatus === "submitted";
+                return (
+                  <tr
+                    key={lead.id}
+                    onClick={() => router.push(`/leads/${lead.id}`)}
+                    className="cursor-pointer transition-colors hover:bg-brand-50/40"
+                  >
+                    <td className="px-5 py-3.5">
+                      <p className="font-semibold text-ink-900">{lead.hotel}</p>
+                      <p className="text-xs text-ink-900/50">
+                        {lead.name} {lead.location !== "—" && `· ${lead.location}`}
+                      </p>
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <SourceBadge source={lead.source} />
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      {isSubmitted ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                          <Check className="size-3 text-emerald-600" /> Done
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
+                          Pending
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="max-w-40 truncate px-4 py-3.5 text-xs text-ink-900/60">
+                      {lead.campaign}
+                    </td>
+
+                    <td className="px-4 py-3.5 text-right text-xs font-semibold text-ink-900">
+                      {lead.budgetLKR ? fmtMoney(lead.budgetLKR) : "—"}
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <StatusBadge status={lead.status} />
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <OwnerChip name={lead.assignedTo} />
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3.5 text-xs text-ink-900/50">
+                      {relTime(lead.createdAt)}
+                    </td>
+
+                    <td className="px-2 py-3.5 text-ink-900/30">
+                      <ChevronRight className="size-4" />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -254,11 +301,10 @@ export default function LeadsBrowser({
             Showing {filtered.length} of {leads.length} leads
           </span>
           <Link
-            href="/intake"
-            target="_blank"
+            href="/generator"
             className="font-semibold text-brand-600 hover:text-brand-700"
           >
-            Open Intake Form ↗ (share this over WhatsApp)
+            Launch FB & IG Lead Generator ↗
           </Link>
         </div>
       </Card>

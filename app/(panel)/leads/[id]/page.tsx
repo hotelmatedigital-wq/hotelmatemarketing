@@ -22,6 +22,7 @@ import {
 import { followUpLabels, followUps } from "@/lib/data";
 import { getLead } from "@/lib/store";
 import SendIntakeButton from "@/components/SendIntakeButton";
+import ClientAssessmentCard from "@/components/ClientAssessmentCard";
 import { fmtDateYear, fmtMoney, fmtTime, isToday, relTime } from "@/lib/format";
 
 const STEPS = ["new", "contacted", "qualified", "proposal", "won"] as const;
@@ -144,7 +145,11 @@ export default async function LeadDetailPage({
               >
                 <MessageCircle className="size-3.5" /> WhatsApp
               </a>
-              <SendIntakeButton name={lead.name} phone={lead.phone} />
+              <SendIntakeButton
+                name={lead.name}
+                phone={lead.phone}
+                leadId={lead.id}
+              />
             </div>
           </Card>
 
@@ -201,8 +206,11 @@ export default async function LeadDetailPage({
           )}
         </div>
 
-        {/* right: pipeline position + follow-ups + activity */}
+        {/* right: assessment + pipeline position + follow-ups + activity */}
         <div className="space-y-6 xl:col-span-2">
+          {/* Client Assessment Card */}
+          <ClientAssessmentCard lead={lead} />
+
           {/* status stepper */}
           <Card className="p-6">
             <h2 className="text-sm font-bold text-ink-900">

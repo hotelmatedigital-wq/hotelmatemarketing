@@ -1,9 +1,5 @@
 /**
- * Hotel Mate Marketing Panel — core data model (Step 1: demo/in-memory).
- *
- * These shapes mirror what the Facebook Lead Ads API returns and what the
- * Hotel Mate PMS exposes, so Step 2+ can swap the demo data source for the
- * real APIs without changing the UI.
+ * Hotel Mate Marketing Panel — core data model.
  */
 
 export type LeadSource =
@@ -22,6 +18,60 @@ export type LeadStatus =
   | "won"
   | "lost";
 
+export type HotelCategory =
+  | "Boutique Hotel"
+  | "Lodge"
+  | "Villa"
+  | "Cabana"
+  | "Hostel"
+  | "Guest House"
+  | "3 Star"
+  | "4 Star"
+  | "5 Star"
+  | "7 Star";
+
+export type OTAPlatform =
+  | "booking.com"
+  | "Agoda"
+  | "Airbnb"
+  | "Expedia"
+  | "Other";
+
+export type FindUsSource =
+  | "Social Media"
+  | "Recommendation"
+  | "Other";
+
+export interface PackageRecommendation {
+  packageName: string;
+  tier: "Starter" | "Professional" | "Enterprise";
+  monthlyLKR: number;
+  addons: string[];
+  communicationApproach: string;
+  pitchPoints: string[];
+}
+
+export interface ClientAssessment {
+  submittedAt: string; // ISO datetime
+  businessName: string;
+  businessArea: string;
+  hotelCategory: HotelCategory;
+  roomsCount: number;
+  hasRestaurant: boolean;
+  hasSpa: boolean;
+  usedPmsBefore: boolean;
+  currentlyUsingPms: boolean;
+  usedChannelManagerBefore: boolean;
+  currentlyUsingChannelManager: boolean;
+  otasManaged: OTAPlatform[];
+  otasOtherText?: string;
+  foundUs: FindUsSource;
+  foundUsOtherText?: string;
+  demoDate: string; // YYYY-MM-DD
+  demoTime: string; // e.g. "10:30 AM" or "14:00"
+  recommendation?: PackageRecommendation;
+}
+
 export interface Lead {
   id: string;
   name: string;
@@ -30,7 +80,7 @@ export interface Lead {
   phone: string;
   email?: string;
   source: LeadSource;
-  /** Facebook campaign / ad set that generated the lead */
+  /** Facebook / Instagram campaign or ad set that generated the lead */
   campaign: string;
   interest: string;
   budgetLKR?: number;
@@ -38,6 +88,10 @@ export interface Lead {
   assignedTo: string;
   createdAt: string; // ISO datetime
   note?: string;
+
+  /** Assessment form status and collected details */
+  formStatus: "pending" | "submitted";
+  assessment?: ClientAssessment;
 }
 
 export type DealStage =

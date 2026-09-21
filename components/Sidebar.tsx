@@ -9,13 +9,15 @@ import {
   CalendarClock,
   Settings,
   Phone,
+  Sparkles,
   X,
 } from "lucide-react";
 import { HOTLINE } from "@/lib/data";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/leads", label: "Leads", icon: Users },
+  { href: "/generator", label: "FB & IG Leads", icon: Sparkles },
+  { href: "/leads", label: "Leads & Assessment", icon: Users },
   { href: "/sales", label: "Sales Pipeline", icon: TrendingUp },
   { href: "/followups", label: "Follow-ups", icon: CalendarClock },
   { href: "/settings", label: "Settings", icon: Settings },

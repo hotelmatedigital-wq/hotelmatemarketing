@@ -5,6 +5,8 @@ import {
   TrendingUp,
   Wallet,
   ArrowRight,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { FacebookIcon } from "@/components/brand-icons";
 import {
@@ -57,6 +59,12 @@ export default async function DashboardPage() {
         subtitle="Social media leads, sales pipeline & follow-ups — all in one place."
         actions={
           <>
+            <Link
+              href="/generator"
+              className="flex items-center gap-1.5 rounded-lg border border-brand-300 bg-brand-50 px-3.5 py-2 text-sm font-bold text-brand-700 hover:bg-brand-100"
+            >
+              <Sparkles className="size-4" /> FB & IG Generator
+            </Link>
             <Link
               href="/leads"
               className="rounded-lg border border-mist-200 bg-white px-4 py-2 text-sm font-semibold text-ink-900 hover:bg-mist-50"
@@ -135,6 +143,11 @@ export default async function DashboardPage() {
                 <div className="hidden md:block">
                   <SourceBadge source={lead.source} />
                 </div>
+                {lead.formStatus === "submitted" && (
+                  <span className="hidden items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 lg:inline-flex">
+                    <Check className="size-2.5" /> Assessment Done
+                  </span>
+                )}
                 <span className="hidden w-20 text-right text-xs text-ink-900/45 sm:block">
                   {relTime(lead.createdAt)}
                 </span>
