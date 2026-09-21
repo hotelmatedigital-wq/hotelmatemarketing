@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/*
+  Hotel Mate brand theme — extracted from https://www.hotelmate.co.uk
+  Primary   #00AEEF  (Cerulean)
+  Dark      #0C1E21  (Firefly)
+  Neutral   #E5E5E5  (Mercury)
+*/
+@theme {
+  --color-brand-50: #eaf7fe;
+  --color-brand-100: #cfedfc;
+  --color-brand-200: #9fdcf9;
+  --color-brand-300: #64c7f5;
+  --color-brand-400: #2fb4f1;
+  --color-brand-500: #00aeef;
+  --color-brand-600: #0091cb;
+  --color-brand-700: #0074a5;
+  --color-brand-800: #075c83;
+  --color-brand-900: #0b4a69;
+
+  --color-ink-950: #071214;
+  --color-ink-900: #0c1e21;
+  --color-ink-800: #123138;
+  --color-ink-700: #1c4650;
+  --color-ink-600: #2a5d6a;
+
+  --color-mist-50: #f8fafb;
+  --color-mist-100: #f2f5f6;
+  --color-mist-200: #e5e5e5;
+  --color-mist-300: #d3dade;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-mist-100 text-ink-900 antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-mist-300;
+}
