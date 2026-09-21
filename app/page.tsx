@@ -17,6 +17,9 @@ import {
 import { deals, followUps, leads } from "@/lib/data";
 import { fmtMoney, fmtTime, isToday, relTime } from "@/lib/format";
 
+// Always render fresh so demo dates/relative times never go stale.
+export const dynamic = "force-dynamic";
+
 export default function DashboardPage() {
   const newThisWeek = leads.filter(
     (l) =>

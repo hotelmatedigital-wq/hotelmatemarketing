@@ -23,15 +23,13 @@ import {
   followUpLabels,
   followUps,
   getLeadById,
-  leads,
 } from "@/lib/data";
 import { fmtDateYear, fmtMoney, fmtTime, isToday, relTime } from "@/lib/format";
 
 const STEPS = ["new", "contacted", "qualified", "proposal", "won"] as const;
 
-export function generateStaticParams() {
-  return leads.map((l) => ({ id: l.id }));
-}
+// Always render fresh so demo dates/relative times never go stale.
+export const dynamic = "force-dynamic";
 
 export default async function LeadDetailPage({
   params,

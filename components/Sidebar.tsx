@@ -89,7 +89,7 @@ export default function Sidebar({
                     : "text-white/60 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <Icon className="size-4.5 shrink-0" />
+                <Icon className="size-[18px] shrink-0" />
                 {label}
                 {active && (
                   <span className="ml-auto size-1.5 rounded-full bg-brand-400" />

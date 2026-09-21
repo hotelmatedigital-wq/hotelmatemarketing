@@ -96,7 +96,9 @@ export default function FollowUpsPage() {
     );
 
   const overdue = items.filter((f) => !f.done && isOverdue(f.dueAt));
-  const today = items.filter((f) => !f.done && isToday(f.dueAt));
+  const today = items.filter(
+    (f) => !f.done && isToday(f.dueAt) && !isOverdue(f.dueAt)
+  );
   const upcoming = items.filter(
     (f) => !f.done && !isToday(f.dueAt) && !isOverdue(f.dueAt)
   );

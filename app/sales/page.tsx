@@ -4,6 +4,9 @@ import { deals } from "@/lib/data";
 import { fmtDate, fmtMoney, initials } from "@/lib/format";
 import type { DealStage } from "@/lib/types";
 
+// Always render fresh so demo dates/relative times never go stale.
+export const dynamic = "force-dynamic";
+
 const COLUMNS: Array<{
   stage: DealStage;
   label: string;
