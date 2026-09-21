@@ -5,6 +5,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { FacebookIcon, InstagramIcon, WhatsAppIcon } from "@/components/brand-icons";
+import { HotelMateIcon } from "@/components/HotelMateLogo";
 import { Card, PageHeader } from "@/components/ui";
 import { HOTLINE, team } from "@/lib/data";
 
@@ -68,8 +69,8 @@ export default function SettingsPage() {
         {/* Hotel Mate PMS */}
         <Card className="p-6">
           <div className="flex items-start justify-between">
-            <span className="grid size-11 place-items-center rounded-xl bg-brand-50 text-brand-600">
-              <Server className="size-6" />
+            <span className="grid size-11 place-items-center rounded-xl bg-ink-900 p-2 shadow-sm">
+              <HotelMateIcon className="size-full" />
             </span>
             <StatusPill state="demo" />
           </div>

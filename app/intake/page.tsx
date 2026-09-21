@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import IntakeForm from "./IntakeForm";
+import { HotelMateIcon } from "@/components/HotelMateLogo";
 
 export const metadata: Metadata = {
   title: "Property Assessment & Demo Request",
@@ -17,15 +18,18 @@ export default function IntakePage() {
       <div className="relative mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-8 sm:px-6 sm:py-12">
         {/* Header Branding */}
         <div className="text-center">
-          <div className="inline-flex items-center gap-3">
-            <div className="grid size-12 place-items-center rounded-xl bg-brand-500 text-2xl font-black text-white shadow-lg shadow-brand-500/40">
-              H
+          <div className="inline-flex items-center gap-3.5">
+            <div className="grid size-14 place-items-center rounded-2xl bg-black/40 p-2 shadow-xl border border-white/10">
+              <HotelMateIcon className="size-full" />
             </div>
             <div className="text-left leading-tight">
-              <p className="text-lg font-black tracking-widest text-white">
+              <p
+                className="text-xl font-black tracking-wider text-white"
+                style={{ letterSpacing: "0.06em" }}
+              >
                 HOTEL MATE
               </p>
-              <p className="text-xs font-semibold tracking-wide text-brand-300">
+              <p className="text-xs font-bold tracking-wide text-brand-300">
                 All-in-One · Integrated · AI Powered
               </p>
             </div>

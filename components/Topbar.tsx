@@ -2,6 +2,7 @@
 
 import { Menu, Search, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { HotelMateIcon } from "@/components/HotelMateLogo";
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
   return (
@@ -13,6 +14,17 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
       >
         <Menu className="size-5" />
       </button>
+
+      {/* Mobile logo */}
+      <Link href="/" className="flex items-center gap-2 lg:hidden">
+        <HotelMateIcon className="size-7" />
+        <span
+          className="text-sm font-black tracking-wider text-ink-900"
+          style={{ letterSpacing: "0.06em" }}
+        >
+          HOTEL MATE
+        </span>
+      </Link>
 
       <div className="hidden items-center gap-2 rounded-lg border border-mist-200 bg-mist-50 px-3 py-2 text-sm text-ink-600 sm:flex sm:w-72">
         <Search className="size-4 shrink-0" />

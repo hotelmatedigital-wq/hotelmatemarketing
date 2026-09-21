@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   },
   description:
     "Hotel Mate Marketing Panel — social media lead monitoring, sales pipeline & follow-ups.",
+  icons: {
+    icon: "/hotelmate-icon.svg",
+    apple: "/hotelmate-icon.png",
+  },
 };
 
 export default function RootLayout({

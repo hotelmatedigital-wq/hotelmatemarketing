@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { HOTLINE } from "@/lib/data";
+import { HotelMateIcon } from "@/components/HotelMateLogo";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -25,19 +26,22 @@ const NAV = [
 
 function Logo() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-500 text-lg font-extrabold text-white shadow-lg shadow-brand-500/30">
-        H
+    <Link href="/" className="flex items-center gap-3 group">
+      <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-black/40 p-1.5 shadow-md border border-white/10 transition-transform group-hover:scale-105">
+        <HotelMateIcon className="size-full" />
       </div>
       <div className="leading-tight">
-        <p className="text-sm font-extrabold tracking-widest text-white">
+        <p
+          className="text-sm font-black tracking-wider text-white"
+          style={{ letterSpacing: "0.06em" }}
+        >
           HOTEL MATE
         </p>
-        <p className="text-[11px] font-medium tracking-wide text-brand-300">
+        <p className="text-[10px] font-bold tracking-wide text-brand-300">
           Marketing Panel
         </p>
       </div>
-    </div>
+    </Link>
   );
 }
 
