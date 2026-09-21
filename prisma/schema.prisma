@@ -1,0 +1,43 @@
+// Hotel Mate Marketing Panel — production database schema (PostgreSQL).
+// Works with Neon, Supabase, Railway, or any managed/self-hosted Postgres.
+//
+// Connection URL lives in prisma.config.ts (Prisma 7 style).
+// Apply migrations with:  npx prisma migrate deploy   (runs automatically on Vercel builds)
+
+generator client {
+  // Rust-free TypeScript client (no binary engine downloads at build time).
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// A sales lead captured from the FB/IG generator, the public intake form,
+/// or manual panel entry. The client assessment + package recommendation is
+/// stored as JSON to keep the 1:1 embedded shape of `ClientAssessment`.
+model Lead {
+  seq        Int      @id @default(autoincrement())
+  name       String
+  phone      String
+  email      String?
+  hotel      String
+  location   String
+  interest   String
+  budgetLkr  Int?     @map("budget_lkr")
+  status     String // LeadStatus: new | contacted | qualified | proposal | won | lost
+  assignedTo String   @default("Unassigned") @map("assigned_to")
+  createdAt  DateTime @default(now()) @map("created_at")
+  source     String // LeadSource: facebook | instagram | whatsapp | website | walkin | manual
+  campaign   String
+  note       String?
+  formStatus String   @default("pending") @map("form_status") // pending | submitted
+
+  /// Full ClientAssessment payload (incl. recommendation) as JSON
+  assessment Json?
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("leads")
+}

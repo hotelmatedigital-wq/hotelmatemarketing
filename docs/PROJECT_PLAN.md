@@ -116,12 +116,16 @@ hotelmatemarketing/
 │   ├── SendIntakeButton.tsx
 │   ├── ui.tsx                         # StatCard, StatusBadge, SourceBadge, etc.
 │   └── brand-icons.tsx                # Facebook / Instagram / WhatsApp SVGs
-└── lib/
-    ├── types.ts                       # Complete TypeScript data model
-    ├── data.ts                        # Seed data, categories, OTAs & calculateRecommendation()
-    ├── store.ts                       # Server-side JSON persistence layer
-    ├── wa.ts                          # WhatsApp message generator & wa.me deep links
-    └── format.ts                      # Currency, date & relative time formatters
+├── lib/
+│   ├── types.ts                       # Complete TypeScript data model
+│   ├── data.ts                        # Static reference data & calculateRecommendation()
+│   ├── db.ts                          # Prisma client singleton (server-only)
+│   ├── store.ts                       # Lead persistence — PostgreSQL via Prisma
+│   ├── wa.ts                          # WhatsApp message generator & wa.me deep links
+│   └── format.ts                      # Currency, date & relative time formatters
+└── prisma/
+    ├── schema.prisma                  # PostgreSQL schema (leads + JSON assessment)
+    └── migrations/                    # Applied automatically in the Vercel build
 ```
 
 ---
