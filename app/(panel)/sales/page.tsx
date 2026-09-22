@@ -123,8 +123,8 @@ export default function SalesPage() {
       </div>
 
       <p className="mt-6 text-xs text-ink-900/45">
-        Drag &amp; drop stage moves, notes and deal values become editable when
-        the database connection lands in Step 3.
+        Deals appear here as leads move towards closing. Drag &amp; drop stage
+        moves and inline deal editing are planned next.
       </p>
     </div>
   );

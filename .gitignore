@@ -13,7 +13,11 @@ yarn-error.log*
 
 .env
 .env.*
+!.env.example
 .vercel
 *.tsbuildinfo
 image-search/
 data/
+
+# Generated Prisma client (npm run db:generate / npm run build)
+lib/generated/

@@ -1,76 +1,63 @@
 import "server-only";
-import { promises as fs } from "fs";
-import path from "path";
-import { calculateRecommendation, leads as seedLeads } from "./data";
-import type { ClientAssessment, Lead } from "./types";
+import type { Prisma } from "@/lib/generated/prisma/client";
+import type { Lead as LeadRow } from "@/lib/generated/prisma/client";
+import { prisma } from "./db";
+import { calculateRecommendation } from "./data";
+import type { ClientAssessment, Lead, LeadSource, LeadStatus } from "./types";
 
 /**
- * Server-side lead store.
+ * Server-side lead store — PostgreSQL via Prisma.
  *
- * Persists dynamically added leads (from FB/IG generator, public intake form,
- * or panel entry) into a local JSON file until Step 3 connects the Hotel Mate PMS database.
+ * Leads captured from the FB/IG generator, the public intake form, or panel
+ * entry are persisted permanently (Vercel-safe). Public lead IDs use the
+ * human-friendly `L-####` format backed by the `leads.seq` identity column.
  */
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const LEADS_FILE = path.join(DATA_DIR, "leads.json");
+const LEAD_ID_PATTERN = /^L-(\d+)$/;
 
-type StoredLead = Lead;
-
-async function readStored(): Promise<StoredLead[]> {
-  try {
-    const raw = await fs.readFile(LEADS_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as StoredLead[];
-    return [];
-  } catch {
-    return [];
-  }
+/** Parse a public lead id (`L-1001`) into its database sequence number. */
+function parseLeadSeq(id: string): number | null {
+  const match = LEAD_ID_PATTERN.exec(id);
+  if (!match) return null;
+  const seq = parseInt(match[1], 10);
+  return Number.isFinite(seq) && seq > 0 ? seq : null;
 }
 
-async function writeStored(leads: StoredLead[]): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(LEADS_FILE, JSON.stringify(leads, null, 2), "utf8");
+function toLead(row: LeadRow): Lead {
+  return {
+    id: `L-${row.seq}`,
+    name: row.name,
+    phone: row.phone,
+    email: row.email ?? undefined,
+    hotel: row.hotel,
+    location: row.location,
+    interest: row.interest,
+    budgetLKR: row.budgetLkr ?? undefined,
+    status: row.status as LeadStatus,
+    assignedTo: row.assignedTo,
+    createdAt: row.createdAt.toISOString(),
+    source: row.source as LeadSource,
+    campaign: row.campaign,
+    note: row.note ?? undefined,
+    formStatus: row.formStatus === "submitted" ? "submitted" : "pending",
+    assessment:
+      (row.assessment as ClientAssessment | null) ?? undefined,
+  };
 }
 
-function nextId(existing: Lead[]): string {
-  let max = 1000;
-  for (const l of existing) {
-    const n = parseInt(l.id.replace(/^L-/, ""), 10);
-    if (!Number.isNaN(n) && n > max) max = n;
-  }
-  return `L-${max + 1}`;
-}
-
-/** All leads = demo seeds (with stored overrides) + dynamically captured ones. */
+/** All leads, newest first. */
 export async function getAllLeads(): Promise<Lead[]> {
-  const stored = await readStored();
-  const storedMap = new Map(stored.map((l) => [l.id, l]));
-
-  // Merge seed leads (overridden by stored version if updated)
-  const merged: Lead[] = [];
-  for (const seed of seedLeads) {
-    if (storedMap.has(seed.id)) {
-      merged.push(storedMap.get(seed.id)!);
-      storedMap.delete(seed.id);
-    } else {
-      merged.push(seed);
-    }
-  }
-
-  // Add any purely new stored leads
-  for (const extra of storedMap.values()) {
-    merged.push(extra);
-  }
-
-  // newest first
-  return merged.sort(
-    (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)
-  );
+  const rows = await prisma.lead.findMany({
+    orderBy: [{ createdAt: "desc" }, { seq: "desc" }],
+  });
+  return rows.map(toLead);
 }
 
 export async function getLead(id: string): Promise<Lead | undefined> {
-  const all = await getAllLeads();
-  return all.find((l) => l.id === id);
+  const seq = parseLeadSeq(id);
+  if (seq === null) return undefined;
+  const row = await prisma.lead.findUnique({ where: { seq } });
+  return row ? toLead(row) : undefined;
 }
 
 export interface NewLeadInput {
@@ -90,36 +77,27 @@ export interface NewLeadInput {
 
 /** Create + persist a new lead. */
 export async function createLead(input: NewLeadInput): Promise<Lead> {
-  const all = await getAllLeads();
-
-  const lead: Lead = {
-    id: nextId(all),
-    name: input.name.trim(),
-    phone: input.phone.trim(),
-    email: input.email?.trim() || undefined,
-    hotel: input.hotel?.trim() || "Pending Assessment",
-    location: input.location?.trim() || "—",
-    interest: input.interest?.trim() || "Social Media Lead (FB/IG)",
-    budgetLKR: input.budgetLKR,
-    status: input.assessment ? "qualified" : "new",
-    assignedTo: "Unassigned",
-    createdAt: new Date().toISOString(),
-    source: input.source ?? "facebook",
-    campaign: input.campaign ?? "FB & IG Lead Generator",
-    note: input.note?.trim() || undefined,
-    formStatus: input.formStatus ?? (input.assessment ? "submitted" : "pending"),
-    assessment: input.assessment,
-  };
-
-  const stored = await readStored();
-  const existingIdx = stored.findIndex((s) => s.id === lead.id);
-  if (existingIdx >= 0) {
-    stored[existingIdx] = lead;
-  } else {
-    stored.push(lead);
-  }
-  await writeStored(stored);
-  return lead;
+  const row = await prisma.lead.create({
+    data: {
+      name: input.name.trim(),
+      phone: input.phone.trim(),
+      email: input.email?.trim() || null,
+      hotel: input.hotel?.trim() || "Pending Assessment",
+      location: input.location?.trim() || "—",
+      interest: input.interest?.trim() || "Social Media Lead (FB/IG)",
+      budgetLkr: input.budgetLKR ?? null,
+      status: input.assessment ? "qualified" : "new",
+      assignedTo: "Unassigned",
+      source: input.source ?? "facebook",
+      campaign: input.campaign ?? "FB & IG Lead Generator",
+      note: input.note?.trim() || null,
+      formStatus: input.formStatus ?? (input.assessment ? "submitted" : "pending"),
+      assessment:
+        (input.assessment as unknown as Prisma.InputJsonValue | undefined) ??
+        undefined,
+    },
+  });
+  return toLead(row);
 }
 
 export interface SubmitAssessmentInput {
@@ -146,8 +124,8 @@ export interface SubmitAssessmentInput {
 }
 
 /**
- * Handle form submission:
- * Computes recommendation, updates existing lead or creates a new one.
+ * Handle assessment form submission:
+ * Computes the recommendation, updates the existing lead or creates a new one.
  */
 export async function submitAssessment(
   input: SubmitAssessmentInput
@@ -192,57 +170,49 @@ export async function submitAssessment(
     recommendation,
   };
 
-  const stored = await readStored();
+  const assessmentJson =
+    assessment as unknown as Prisma.InputJsonValue | undefined;
 
+  // Update the existing lead when the client followed a personal link.
   if (input.leadId) {
     const existing = await getLead(input.leadId);
     if (existing) {
-      const updated: Lead = {
-        ...existing,
-        name: input.name?.trim() || existing.name,
-        phone: input.phone?.trim() || existing.phone,
-        email: input.email?.trim() || existing.email,
-        hotel: input.businessName.trim(),
-        location: input.businessArea.trim(),
-        interest: `${input.hotelCategory} (${input.roomsCount} rms) · ${recommendation.packageName}`,
-        budgetLKR: existing.budgetLKR || recommendation.monthlyLKR,
-        status: "qualified",
-        formStatus: "submitted",
-        assessment,
-      };
-
-      const idx = stored.findIndex((l) => l.id === existing.id);
-      if (idx >= 0) {
-        stored[idx] = updated;
-      } else {
-        stored.push(updated);
-      }
-      await writeStored(stored);
-      return updated;
+      const row = await prisma.lead.update({
+        where: { seq: parseLeadSeq(existing.id)! },
+        data: {
+          name: input.name?.trim() || existing.name,
+          phone: input.phone?.trim() || existing.phone,
+          email: input.email?.trim() || existing.email || null,
+          hotel: input.businessName.trim(),
+          location: input.businessArea.trim(),
+          interest: `${input.hotelCategory} (${input.roomsCount} rms) · ${recommendation.packageName}`,
+          budgetLkr: existing.budgetLKR || recommendation.monthlyLKR,
+          status: "qualified",
+          formStatus: "submitted",
+          assessment: assessmentJson,
+        },
+      });
+      return toLead(row);
     }
   }
 
-  // Create brand new assessed lead
-  const all = await getAllLeads();
-  const newLead: Lead = {
-    id: nextId(all),
-    name: input.name.trim(),
-    phone: input.phone.trim(),
-    email: input.email?.trim() || undefined,
-    hotel: input.businessName.trim(),
-    location: input.businessArea.trim(),
-    interest: `${input.hotelCategory} (${input.roomsCount} rms) · ${recommendation.packageName}`,
-    budgetLKR: recommendation.monthlyLKR,
-    status: "qualified",
-    assignedTo: "Unassigned",
-    createdAt: new Date().toISOString(),
-    source: "whatsapp",
-    campaign: "WhatsApp Assessment Form",
-    formStatus: "submitted",
-    assessment,
-  };
-
-  stored.push(newLead);
-  await writeStored(stored);
-  return newLead;
+  // Create a brand new assessed lead.
+  const row = await prisma.lead.create({
+    data: {
+      name: input.name.trim(),
+      phone: input.phone.trim(),
+      email: input.email?.trim() || null,
+      hotel: input.businessName.trim(),
+      location: input.businessArea.trim(),
+      interest: `${input.hotelCategory} (${input.roomsCount} rms) · ${recommendation.packageName}`,
+      budgetLkr: recommendation.monthlyLKR,
+      status: "qualified",
+      assignedTo: "Unassigned",
+      source: "whatsapp",
+      campaign: "WhatsApp Assessment Form",
+      formStatus: "submitted",
+      assessment: assessmentJson,
+    },
+  });
+  return toLead(row);
 }
