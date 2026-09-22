@@ -1,37 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Calendar,
   Check,
   CheckCircle2,
-  Clock,
   Copy,
   ExternalLink,
   Hotel,
-  Layers,
   MessageCircle,
-  Package,
-  Send,
   Sparkles,
-  Utensils,
-  Zap,
 } from "lucide-react";
 import { Card } from "@/components/ui";
 import { generateLeadWhatsAppMessage, waLink } from "@/lib/wa";
-import { fmtMoney } from "@/lib/format";
+import { fmtDateYear, fmtMoney } from "@/lib/format";
+import { useBrowserOrigin } from "@/lib/browser";
 import type { Lead } from "@/lib/types";
 
 export default function ClientAssessmentCard({ lead }: { lead: Lead }) {
-  const [origin, setOrigin] = useState("");
+  const origin = useBrowserOrigin();
   const [copiedLink, setCopiedLink] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setOrigin(window.location.origin);
-    }
-  }, []);
 
   const formUrl = origin
     ? `${origin}/intake?leadId=${lead.id}`
@@ -145,7 +134,7 @@ export default function ClientAssessmentCard({ lead }: { lead: Lead }) {
               Client Onboarding & Property Assessment
             </h2>
             <p className="text-xs text-ink-900/50">
-              Submitted on {new Date(a.submittedAt).toLocaleDateString()}
+              Submitted on {fmtDateYear(a.submittedAt)}
             </p>
           </div>
         </div>

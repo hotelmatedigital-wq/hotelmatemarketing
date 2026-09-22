@@ -12,7 +12,6 @@ import {
   MessageCircle,
   Sparkles,
   X,
-  FileCheck2,
 } from "lucide-react";
 import {
   Card,
@@ -24,6 +23,7 @@ import {
 import AddLeadModal from "@/components/AddLeadModal";
 import { sourceLabels } from "@/lib/data";
 import { fmtMoney, relTime } from "@/lib/format";
+import { useBrowserOrigin } from "@/lib/browser";
 import { generateLeadWhatsAppMessage, waLink } from "@/lib/wa";
 import type { Lead, LeadSource } from "@/lib/types";
 
@@ -40,10 +40,13 @@ type LeadStatusFilter = "all" | Lead["status"];
 
 export default function LeadsBrowser({
   initialLeads,
+  openOnLoad = false,
 }: {
   initialLeads: Lead[];
+  openOnLoad?: boolean;
 }) {
   const router = useRouter();
+  const origin = useBrowserOrigin();
   const [leads, setLeads] = useState(initialLeads);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<LeadStatusFilter>("all");
@@ -51,7 +54,7 @@ export default function LeadsBrowser({
   const [formFilter, setFormFilter] = useState<"all" | "submitted" | "pending">(
     "all"
   );
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(openOnLoad);
   const [captured, setCaptured] = useState<Lead | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -73,10 +76,12 @@ export default function LeadsBrowser({
     });
   }, [leads, query, status, source, formFilter]);
 
-  const intakeUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/intake`
-      : "/intake";
+  const intakeUrl = origin ? `${origin}/intake` : "/intake";
+
+  function closeModal() {
+    setModalOpen(false);
+    if (openOnLoad) router.replace("/leads", { scroll: false });
+  }
 
   async function copyIntakeLink() {
     try {
@@ -167,10 +172,9 @@ export default function LeadsBrowser({
               captured.phone,
               generateLeadWhatsAppMessage({
                 clientName: captured.name,
-                formUrl:
-                  typeof window !== "undefined"
-                    ? `${window.location.origin}/intake?leadId=${captured.id}`
-                    : `https://marketing.hotelmate.app/intake?leadId=${captured.id}`,
+                formUrl: origin
+                  ? `${origin}/intake?leadId=${captured.id}`
+                  : `/intake?leadId=${captured.id}`,
               })
             )}
             target="_blank"
@@ -291,8 +295,24 @@ export default function LeadsBrowser({
         </div>
 
         {filtered.length === 0 && (
-          <div className="px-5 py-12 text-center text-sm text-ink-900/45">
-            No leads match your filters.
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm font-semibold text-ink-900">
+              {leads.length === 0 ? "No leads yet" : "No leads match your filters"}
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-xs text-ink-900/45">
+              {leads.length === 0
+                ? "Add your first real inquiry. Only leads you enter or receive through the intake form will appear here."
+                : "Try changing the search text or filters."}
+            </p>
+            {leads.length === 0 && (
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-bold text-white hover:bg-brand-600"
+              >
+                <Plus className="size-4" /> Add First Lead
+              </button>
+            )}
           </div>
         )}
 
@@ -311,10 +331,10 @@ export default function LeadsBrowser({
 
       <AddLeadModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={closeModal}
         onAdded={(lead) => {
-          setLeads((prev) => [lead, ...prev]);
-          setModalOpen(false);
+          setLeads((previous) => [lead, ...previous]);
+          closeModal();
           setCaptured(lead);
         }}
       />

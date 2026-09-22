@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Calendar,
   CheckCircle2,
-  Clock,
   Hotel,
   Loader2,
   Phone,
@@ -18,6 +16,7 @@ import {
   HOTLINE_TEL,
   OTA_OPTIONS,
 } from "@/lib/data";
+import { useBrowserDate } from "@/lib/browser";
 import type { FindUsSource, HotelCategory, OTAPlatform } from "@/lib/types";
 
 const inputCls =
@@ -40,6 +39,7 @@ function YesNoToggle({
       <button
         type="button"
         id={`${id}-yes`}
+        aria-pressed={value}
         onClick={() => onChange(true)}
         className={`rounded-lg px-5 py-2 text-xs font-bold transition-all ${
           value
@@ -52,6 +52,7 @@ function YesNoToggle({
       <button
         type="button"
         id={`${id}-no`}
+        aria-pressed={!value}
         onClick={() => onChange(false)}
         className={`rounded-lg px-5 py-2 text-xs font-bold transition-all ${
           !value
@@ -100,12 +101,12 @@ export default function IntakeForm() {
   const [foundUs, setFoundUs] = useState<FindUsSource>("Social Media");
   const [foundUsOtherText, setFoundUsOtherText] = useState("");
 
-  // Default demo date tomorrow, 10:30 AM
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const defaultDateStr = tomorrow.toISOString().split("T")[0];
-
-  const [demoDate, setDemoDate] = useState(defaultDateStr);
+  // Resolve dates in the visitor's time zone after hydration. This prevents a
+  // statically rendered form from keeping the date from the original build.
+  const defaultDemoDate = useBrowserDate(1);
+  const minimumDemoDate = useBrowserDate(0);
+  const [selectedDemoDate, setDemoDate] = useState("");
+  const demoDate = selectedDemoDate || defaultDemoDate;
   const [demoTime, setDemoTime] = useState("10:30 AM");
 
   const [submitting, setSubmitting] = useState(false);
@@ -306,6 +307,7 @@ export default function IntakeForm() {
               id="name"
               type="text"
               required
+              maxLength={100}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Nuwan Jayasuriya"
@@ -321,6 +323,7 @@ export default function IntakeForm() {
               id="phone"
               type="tel"
               required
+              maxLength={32}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+94 7X XXX XXXX"
@@ -335,6 +338,7 @@ export default function IntakeForm() {
             <input
               id="email"
               type="email"
+              maxLength={254}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="hotelowner@property.lk"
@@ -350,6 +354,7 @@ export default function IntakeForm() {
               id="businessName"
               type="text"
               required
+              maxLength={160}
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               placeholder="e.g. Palm Grove Villa"
@@ -365,6 +370,7 @@ export default function IntakeForm() {
               id="businessArea"
               type="text"
               required
+              maxLength={120}
               value={businessArea}
               onChange={(e) => setBusinessArea(e.target.value)}
               placeholder="e.g. Negombo, Galle, Ella"
@@ -521,6 +527,7 @@ export default function IntakeForm() {
                 <button
                   key={ota}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => toggleOta(ota)}
                   className={`rounded-xl border px-3.5 py-2 text-xs font-bold transition-all ${
                     active
@@ -538,6 +545,7 @@ export default function IntakeForm() {
             <div className="mt-3">
               <input
                 type="text"
+                maxLength={200}
                 value={otasOtherText}
                 onChange={(e) => setOtasOtherText(e.target.value)}
                 placeholder="Please specify other OTA channels…"
@@ -569,6 +577,7 @@ export default function IntakeForm() {
                 id="demoDate"
                 type="date"
                 required
+                min={minimumDemoDate || undefined}
                 value={demoDate}
                 onChange={(e) => setDemoDate(e.target.value)}
                 className={inputCls}
@@ -585,6 +594,7 @@ export default function IntakeForm() {
                 id="demoTime"
                 type="text"
                 required
+                maxLength={20}
                 value={demoTime}
                 onChange={(e) => setDemoTime(e.target.value)}
                 placeholder="e.g. 10:30 AM or 03:00 PM"
@@ -614,6 +624,7 @@ export default function IntakeForm() {
               <div className="mt-3">
                 <input
                   type="text"
+                  maxLength={200}
                   value={foundUsOtherText}
                   onChange={(e) => setFoundUsOtherText(e.target.value)}
                   placeholder="Please specify how you found us…"

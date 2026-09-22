@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   Building2,
-  CalendarClock,
   Check,
   Mail,
   MapPin,
@@ -19,15 +18,16 @@ import {
   StatusBadge,
   STATUS_LABELS,
 } from "@/components/ui";
-import { followUpLabels, followUps } from "@/lib/data";
 import { getLead } from "@/lib/store";
+import { isDatabaseConfigured } from "@/lib/db";
 import SendIntakeButton from "@/components/SendIntakeButton";
 import ClientAssessmentCard from "@/components/ClientAssessmentCard";
-import { fmtDateYear, fmtMoney, fmtTime, isToday, relTime } from "@/lib/format";
+import LeadManagementCard from "@/components/LeadManagementCard";
+import { fmtDateYear, fmtMoney, relTime } from "@/lib/format";
 
 const STEPS = ["new", "contacted", "qualified", "proposal", "won"] as const;
 
-// Always render fresh so demo dates/relative times never go stale.
+// Always render fresh so newly entered and updated lead data is visible.
 export const dynamic = "force-dynamic";
 
 export default async function LeadDetailPage({
@@ -35,13 +35,10 @@ export default async function LeadDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!isDatabaseConfigured()) return null;
   const { id } = await params;
   const lead = await getLead(id);
   if (!lead) notFound();
-
-  const leadFollowUps = followUps
-    .filter((f) => f.leadId === lead.id)
-    .sort((a, b) => +new Date(a.dueAt) - +new Date(b.dueAt));
 
   const stepIndex =
     lead.status === "lost"
@@ -56,17 +53,10 @@ export default async function LeadDetailPage({
         when: relTime(lead.createdAt),
       },
     ];
-  for (const f of leadFollowUps) {
-    activity.push({
-      icon: <CalendarClock className="size-3.5" />,
-      text: `${f.done ? "Completed" : "Scheduled"}: ${followUpLabels[f.type]} — ${f.note}`,
-      when: fmtDateYear(f.dueAt),
-    });
-  }
   activity.push({
     icon: <Check className="size-3.5" />,
-    text: `Status: ${STATUS_LABELS[lead.status]}`,
-    when: "now",
+    text: `Current status: ${STATUS_LABELS[lead.status]}`,
+    when: lead.updatedAt ? relTime(lead.updatedAt) : "Set when lead was created",
   });
 
   const waLink = `https://wa.me/${lead.phone.replace(/[^\d]/g, "")}`;
@@ -206,9 +196,10 @@ export default async function LeadDetailPage({
           )}
         </div>
 
-        {/* right: assessment + pipeline position + follow-ups + activity */}
+        {/* right: real lead management, assessment, pipeline and activity */}
         <div className="space-y-6 xl:col-span-2">
-          {/* Client Assessment Card */}
+          <LeadManagementCard lead={lead} />
+
           <ClientAssessmentCard lead={lead} />
 
           {/* status stepper */}
@@ -250,51 +241,6 @@ export default async function LeadDetailPage({
                 ))}
               </div>
             )}
-          </Card>
-
-          {/* follow-ups for this lead */}
-          <Card>
-            <div className="border-b border-mist-200 px-5 py-4">
-              <h2 className="text-sm font-bold text-ink-900">Follow-ups</h2>
-            </div>
-            <div className="divide-y divide-mist-100">
-              {leadFollowUps.map((f) => (
-                <div key={f.id} className="flex items-center gap-4 px-5 py-3.5">
-                  <span
-                    className={`grid size-9 shrink-0 place-items-center rounded-lg text-xs font-bold ${
-                      isToday(f.dueAt)
-                        ? "bg-brand-50 text-brand-600"
-                        : "bg-mist-100 text-ink-900/50"
-                    }`}
-                  >
-                    <CalendarClock className="size-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-ink-900">
-                      {followUpLabels[f.type]} — {f.note}
-                    </p>
-                    <p className="text-xs text-ink-900/50">
-                      {fmtDateYear(f.dueAt)} at {fmtTime(f.dueAt)} ·{" "}
-                      {f.owner}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                      f.done
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-amber-50 text-amber-600"
-                    }`}
-                  >
-                    {f.done ? "Done" : "Pending"}
-                  </span>
-                </div>
-              ))}
-              {leadFollowUps.length === 0 && (
-                <p className="px-5 py-8 text-center text-sm text-ink-900/45">
-                  No follow-ups scheduled for this lead yet.
-                </p>
-              )}
-            </div>
           </Card>
 
           {/* activity timeline */}

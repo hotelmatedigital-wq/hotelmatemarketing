@@ -1,17 +1,25 @@
+import {
+  BUSINESS_TIME_ZONE,
+  dateInBusinessTimeZone,
+} from "./date";
+
 const DATE_FMT = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
+  timeZone: BUSINESS_TIME_ZONE,
 });
 
 const DATE_YEAR_FMT = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
   year: "numeric",
+  timeZone: BUSINESS_TIME_ZONE,
 });
 
 const TIME_FMT = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: BUSINESS_TIME_ZONE,
 });
 
 export function fmtDate(iso: string): string {
@@ -43,17 +51,24 @@ export function relTime(iso: string): string {
   return fmtDate(iso);
 }
 
+export function isWithinLastDays(iso: string, days: number): boolean {
+  const timestamp = new Date(iso).getTime();
+  return (
+    Number.isFinite(timestamp) &&
+    Date.now() - timestamp >= 0 &&
+    Date.now() - timestamp < days * 24 * 60 * 60 * 1000
+  );
+}
+
 export function isOverdue(iso: string): boolean {
   return new Date(iso).getTime() < Date.now();
 }
 
 export function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const now = new Date();
+  const date = new Date(iso);
   return (
-    d.getDate() === now.getDate() &&
-    d.getMonth() === now.getMonth() &&
-    d.getFullYear() === now.getFullYear()
+    Number.isFinite(date.getTime()) &&
+    dateInBusinessTimeZone(date) === dateInBusinessTimeZone()
   );
 }
 

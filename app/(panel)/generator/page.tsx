@@ -1,10 +1,12 @@
 import { getAllLeads } from "@/lib/store";
+import { isDatabaseConfigured } from "@/lib/db";
 import { PageHeader } from "@/components/ui";
 import GeneratorClient from "./GeneratorClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeneratorPage() {
+  if (!isDatabaseConfigured()) return null;
   const allLeads = await getAllLeads();
   // Filter leads originating from FB / IG or manual generator
   const fbIgLeads = allLeads.filter(

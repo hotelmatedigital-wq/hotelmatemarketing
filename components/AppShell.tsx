@@ -20,7 +20,7 @@ export default function AppShell({
           {children}
         </main>
         <footer className="border-t border-mist-200 px-6 py-4 text-center text-xs text-ink-900/40">
-          HOTEL MATE Marketing Panel · Step 1 Demo · hotelmate.co.uk ·
+          HOTEL MATE Marketing Panel · Real Lead Workspace · hotelmate.co.uk ·
           Hotline +94 78 860 7143
         </footer>
       </div>

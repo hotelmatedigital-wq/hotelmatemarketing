@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -63,15 +63,8 @@ export default function GeneratorClient({
     waUrl: string;
   } | null>(null);
 
-  const [origin, setOrigin] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMsg, setCopiedMsg] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setOrigin(window.location.origin);
-    }
-  }, []);
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
@@ -221,6 +214,7 @@ export default function GeneratorClient({
               <input
                 id="client-name"
                 required
+                maxLength={100}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Asoka Rajapakse"
@@ -238,6 +232,7 @@ export default function GeneratorClient({
                   id="client-phone"
                   required
                   type="tel"
+                  maxLength={32}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+94 7X XXX XXXX"
@@ -252,6 +247,7 @@ export default function GeneratorClient({
                 <input
                   id="client-email"
                   type="email"
+                  maxLength={254}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="client@hotel.lk"
@@ -268,6 +264,7 @@ export default function GeneratorClient({
                 </label>
                 <input
                   id="campaign-name"
+                  maxLength={160}
                   value={campaign}
                   onChange={(e) => setCampaign(e.target.value)}
                   placeholder="e.g. FB Luxury Resort Ad"
@@ -280,6 +277,7 @@ export default function GeneratorClient({
                 </label>
                 <input
                   id="client-note"
+                  maxLength={2000}
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="e.g. Inquired about booking engine"

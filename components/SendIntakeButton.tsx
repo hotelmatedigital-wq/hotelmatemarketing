@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
+import { useBrowserOrigin } from "@/lib/browser";
 import { generateLeadWhatsAppMessage, waLink } from "@/lib/wa";
 
 /**
  * Opens WhatsApp addressed to the lead's number with the intake-form link
- * prefilled. The href is built after mount so it always uses the real origin.
+ * prefilled. The href is enabled after hydration so it uses the real origin.
  */
 export default function SendIntakeButton({
   name,
@@ -17,19 +17,21 @@ export default function SendIntakeButton({
   phone: string;
   leadId?: string;
 }) {
-  const [href, setHref] = useState<string | null>(null);
-
-  useEffect(() => {
-    const origin = window.location.origin;
-    const formUrl = leadId
+  const origin = useBrowserOrigin();
+  const formUrl = origin
+    ? leadId
       ? `${origin}/intake?leadId=${encodeURIComponent(leadId)}`
-      : `${origin}/intake`;
-    const message = generateLeadWhatsAppMessage({
-      clientName: name,
-      formUrl,
-    });
-    setHref(waLink(phone, message));
-  }, [name, phone, leadId]);
+      : `${origin}/intake`
+    : "";
+  const href = formUrl
+    ? waLink(
+        phone,
+        generateLeadWhatsAppMessage({
+          clientName: name,
+          formUrl,
+        })
+      )
+    : null;
 
   return (
     <a
@@ -37,10 +39,10 @@ export default function SendIntakeButton({
       target="_blank"
       rel="noreferrer"
       aria-disabled={href === null}
-      onClick={(e) => {
-        if (href === null) e.preventDefault();
+      onClick={(event) => {
+        if (href === null) event.preventDefault();
       }}
-      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-ink-900 px-3 py-2 text-xs font-bold text-white hover:bg-ink-800"
+      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-ink-900 px-3 py-2 text-xs font-bold text-white hover:bg-ink-800 aria-disabled:cursor-wait aria-disabled:opacity-60"
     >
       <MessageCircle className="size-3.5" /> Send Form
     </a>
