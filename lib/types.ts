@@ -87,6 +87,7 @@ export interface Lead {
   status: LeadStatus;
   assignedTo: string;
   createdAt: string; // ISO datetime
+  updatedAt?: string; // ISO datetime of the latest manual change
   note?: string;
 
   /** Assessment form status and collected details */

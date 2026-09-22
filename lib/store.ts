@@ -1,63 +1,99 @@
 import "server-only";
-import type { Prisma } from "@/lib/generated/prisma/client";
-import type { Lead as LeadRow } from "@/lib/generated/prisma/client";
-import { prisma } from "./db";
 import { calculateRecommendation } from "./data";
-import type { ClientAssessment, Lead, LeadSource, LeadStatus } from "./types";
+import { database } from "./db";
+import type { ClientAssessment, Lead } from "./types";
 
 /**
- * Server-side lead store — PostgreSQL via Prisma.
+ * Supabase PostgreSQL lead repository.
  *
- * Leads captured from the FB/IG generator, the public intake form, or panel
- * entry are persisted permanently (Vercel-safe). Public lead IDs use the
- * human-friendly `L-####` format backed by the `leads.seq` identity column.
+ * The connection is lazy, so `next build` never needs database access. At
+ * runtime DATABASE_URL must point to the Supabase transaction pooler or direct
+ * PostgreSQL connection.
  */
 
-const LEAD_ID_PATTERN = /^L-(\d+)$/;
+interface LeadRow {
+  id: string;
+  name: string;
+  hotel: string;
+  location: string;
+  phone: string;
+  email: string | null;
+  source: Lead["source"];
+  campaign: string;
+  interest: string;
+  budget_lkr: string | number | null;
+  status: Lead["status"];
+  assigned_to: string;
+  note: string | null;
+  form_status: Lead["formStatus"];
+  assessment: ClientAssessment | string | null;
+  created_at: Date | string;
+  updated_at: Date | string | null;
+}
 
-/** Parse a public lead id (`L-1001`) into its database sequence number. */
-function parseLeadSeq(id: string): number | null {
-  const match = LEAD_ID_PATTERN.exec(id);
-  if (!match) return null;
-  const seq = parseInt(match[1], 10);
-  return Number.isFinite(seq) && seq > 0 ? seq : null;
+function isoDate(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function parseAssessment(
+  value: ClientAssessment | string | null
+): ClientAssessment | undefined {
+  if (value === null) return undefined;
+  return typeof value === "string"
+    ? (JSON.parse(value) as ClientAssessment)
+    : value;
 }
 
 function toLead(row: LeadRow): Lead {
   return {
-    id: `L-${row.seq}`,
+    id: row.id,
     name: row.name,
-    phone: row.phone,
-    email: row.email ?? undefined,
     hotel: row.hotel,
     location: row.location,
-    interest: row.interest,
-    budgetLKR: row.budgetLkr ?? undefined,
-    status: row.status as LeadStatus,
-    assignedTo: row.assignedTo,
-    createdAt: row.createdAt.toISOString(),
-    source: row.source as LeadSource,
+    phone: row.phone,
+    email: row.email ?? undefined,
+    source: row.source,
     campaign: row.campaign,
+    interest: row.interest,
+    budgetLKR:
+      row.budget_lkr === null ? undefined : Number(row.budget_lkr),
+    status: row.status,
+    assignedTo: row.assigned_to,
     note: row.note ?? undefined,
-    formStatus: row.formStatus === "submitted" ? "submitted" : "pending",
-    assessment:
-      (row.assessment as ClientAssessment | null) ?? undefined,
+    formStatus: row.form_status,
+    assessment: parseAssessment(row.assessment),
+    createdAt: isoDate(row.created_at),
+    updatedAt: row.updated_at ? isoDate(row.updated_at) : undefined,
   };
 }
 
-/** All leads, newest first. */
+function assessmentJson(
+  assessment: ClientAssessment | undefined
+): string | null {
+  return assessment ? JSON.stringify(assessment) : null;
+}
+
+/** Return only persisted real leads, newest first. */
 export async function getAllLeads(): Promise<Lead[]> {
-  const rows = await prisma.lead.findMany({
-    orderBy: [{ createdAt: "desc" }, { seq: "desc" }],
-  });
+  const sql = await database();
+  const rows = await sql<LeadRow[]>`
+    SELECT *
+    FROM public.leads
+    ORDER BY created_at DESC
+  `;
   return rows.map(toLead);
 }
 
 export async function getLead(id: string): Promise<Lead | undefined> {
-  const seq = parseLeadSeq(id);
-  if (seq === null) return undefined;
-  const row = await prisma.lead.findUnique({ where: { seq } });
-  return row ? toLead(row) : undefined;
+  if (!/^L-\d+$/.test(id)) return undefined;
+  const sql = await database();
+  const rows = await sql<LeadRow[]>`
+    SELECT *
+    FROM public.leads
+    WHERE id = ${id}
+    LIMIT 1
+  `;
+  return rows[0] ? toLead(rows[0]) : undefined;
 }
 
 export interface NewLeadInput {
@@ -71,37 +107,108 @@ export interface NewLeadInput {
   note?: string;
   source?: Lead["source"];
   campaign?: string;
+  status?: Lead["status"];
+  assignedTo?: string;
   formStatus?: "pending" | "submitted";
   assessment?: ClientAssessment;
 }
 
-/** Create + persist a new lead. */
+/** Create and persist a real lead in PostgreSQL. */
 export async function createLead(input: NewLeadInput): Promise<Lead> {
-  const row = await prisma.lead.create({
-    data: {
-      name: input.name.trim(),
-      phone: input.phone.trim(),
-      email: input.email?.trim() || null,
-      hotel: input.hotel?.trim() || "Pending Assessment",
-      location: input.location?.trim() || "—",
-      interest: input.interest?.trim() || "Social Media Lead (FB/IG)",
-      budgetLkr: input.budgetLKR ?? null,
-      status: input.assessment ? "qualified" : "new",
-      assignedTo: "Unassigned",
-      source: input.source ?? "facebook",
-      campaign: input.campaign ?? "FB & IG Lead Generator",
-      note: input.note?.trim() || null,
-      formStatus: input.formStatus ?? (input.assessment ? "submitted" : "pending"),
-      assessment:
-        (input.assessment as unknown as Prisma.InputJsonValue | undefined) ??
-        undefined,
-    },
-  });
-  return toLead(row);
+  const sql = await database();
+  const rows = await sql<LeadRow[]>`
+    INSERT INTO public.leads (
+      name,
+      phone,
+      email,
+      hotel,
+      location,
+      interest,
+      budget_lkr,
+      status,
+      assigned_to,
+      source,
+      campaign,
+      note,
+      form_status,
+      assessment
+    ) VALUES (
+      ${input.name.trim()},
+      ${input.phone.trim()},
+      ${input.email?.trim() || null},
+      ${input.hotel?.trim() || "Property not provided"},
+      ${input.location?.trim() || "Not provided"},
+      ${input.interest?.trim() || "Not specified"},
+      ${input.budgetLKR ?? null},
+      ${input.assessment ? "qualified" : (input.status ?? "new")},
+      ${input.assignedTo?.trim() || "Unassigned"},
+      ${input.source ?? "manual"},
+      ${input.campaign?.trim() || "Manual entry"},
+      ${input.note?.trim() || null},
+      ${input.formStatus ?? (input.assessment ? "submitted" : "pending")},
+      ${assessmentJson(input.assessment)}::JSONB
+    )
+    RETURNING *
+  `;
+  return toLead(rows[0]);
+}
+
+export interface UpdateLeadInput {
+  status?: Lead["status"];
+  budgetLKR?: number | null;
+  assignedTo?: string;
+  note?: string | null;
+}
+
+/** Atomically update only the supplied sales fields for a persisted lead. */
+export async function updateLead(
+  id: string,
+  input: UpdateLeadInput
+): Promise<Lead | undefined> {
+  const hasStatus = input.status !== undefined;
+  const hasBudget = input.budgetLKR !== undefined;
+  const hasAssignee = input.assignedTo !== undefined;
+  const hasNote = input.note !== undefined;
+  const sql = await database();
+  const rows = await sql<LeadRow[]>`
+    UPDATE public.leads
+    SET
+      status = CASE
+        WHEN ${hasStatus} THEN ${input.status ?? null}
+        ELSE status
+      END,
+      budget_lkr = CASE
+        WHEN ${hasBudget} THEN ${input.budgetLKR ?? null}
+        ELSE budget_lkr
+      END,
+      assigned_to = CASE
+        WHEN ${hasAssignee} THEN ${input.assignedTo?.trim() || "Unassigned"}
+        ELSE assigned_to
+      END,
+      note = CASE
+        WHEN ${hasNote} THEN ${input.note?.trim() || null}
+        ELSE note
+      END,
+      updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `;
+  return rows[0] ? toLead(rows[0]) : undefined;
+}
+
+/** Permanently remove a persisted lead. */
+export async function deleteLead(id: string): Promise<boolean> {
+  const sql = await database();
+  const rows = await sql<{ id: string }[]>`
+    DELETE FROM public.leads
+    WHERE id = ${id}
+    RETURNING id
+  `;
+  return rows.length > 0;
 }
 
 export interface SubmitAssessmentInput {
-  leadId?: string; // existing lead ID if client followed personal link
+  leadId?: string;
   name: string;
   phone: string;
   email?: string;
@@ -123,10 +230,7 @@ export interface SubmitAssessmentInput {
   demoTime: string;
 }
 
-/**
- * Handle assessment form submission:
- * Computes the recommendation, updates the existing lead or creates a new one.
- */
+/** Compute the recommendation and update or create a PostgreSQL lead row. */
 export async function submitAssessment(
   input: SubmitAssessmentInput
 ): Promise<Lead> {
@@ -154,7 +258,7 @@ export async function submitAssessment(
     businessName: input.businessName.trim(),
     businessArea: input.businessArea.trim(),
     hotelCategory: input.hotelCategory,
-    roomsCount: Number(input.roomsCount) || 1,
+    roomsCount: input.roomsCount,
     hasRestaurant: input.hasRestaurant,
     hasSpa: input.hasSpa,
     usedPmsBefore: input.usedPmsBefore,
@@ -170,49 +274,41 @@ export async function submitAssessment(
     recommendation,
   };
 
-  const assessmentJson =
-    assessment as unknown as Prisma.InputJsonValue | undefined;
-
-  // Update the existing lead when the client followed a personal link.
-  if (input.leadId) {
-    const existing = await getLead(input.leadId);
-    if (existing) {
-      const row = await prisma.lead.update({
-        where: { seq: parseLeadSeq(existing.id)! },
-        data: {
-          name: input.name?.trim() || existing.name,
-          phone: input.phone?.trim() || existing.phone,
-          email: input.email?.trim() || existing.email || null,
-          hotel: input.businessName.trim(),
-          location: input.businessArea.trim(),
-          interest: `${input.hotelCategory} (${input.roomsCount} rms) · ${recommendation.packageName}`,
-          budgetLkr: existing.budgetLKR || recommendation.monthlyLKR,
-          status: "qualified",
-          formStatus: "submitted",
-          assessment: assessmentJson,
-        },
-      });
-      return toLead(row);
-    }
-  }
-
-  // Create a brand new assessed lead.
-  const row = await prisma.lead.create({
-    data: {
-      name: input.name.trim(),
-      phone: input.phone.trim(),
-      email: input.email?.trim() || null,
-      hotel: input.businessName.trim(),
-      location: input.businessArea.trim(),
+  if (!input.leadId) {
+    return createLead({
+      name: input.name,
+      phone: input.phone,
+      email: input.email,
+      hotel: input.businessName,
+      location: input.businessArea,
       interest: `${input.hotelCategory} (${input.roomsCount} rms) · ${recommendation.packageName}`,
-      budgetLkr: recommendation.monthlyLKR,
-      status: "qualified",
-      assignedTo: "Unassigned",
+      budgetLKR: recommendation.monthlyLKR,
       source: "whatsapp",
       campaign: "WhatsApp Assessment Form",
       formStatus: "submitted",
-      assessment: assessmentJson,
-    },
-  });
-  return toLead(row);
+      assessment,
+    });
+  }
+
+  const sql = await database();
+  const rows = await sql<LeadRow[]>`
+    UPDATE public.leads
+    SET
+      name = ${input.name.trim()},
+      phone = ${input.phone.trim()},
+      email = COALESCE(${input.email?.trim() || null}, email),
+      hotel = ${input.businessName.trim()},
+      location = ${input.businessArea.trim()},
+      interest = ${`${input.hotelCategory} (${input.roomsCount} rms) · ${recommendation.packageName}`},
+      budget_lkr = COALESCE(budget_lkr, ${recommendation.monthlyLKR}),
+      status = 'qualified',
+      form_status = 'submitted',
+      assessment = ${assessmentJson(assessment)}::JSONB,
+      updated_at = NOW()
+    WHERE id = ${input.leadId}
+    RETURNING *
+  `;
+
+  if (!rows[0]) throw new Error(`Lead ${input.leadId} was not found`);
+  return toLead(rows[0]);
 }

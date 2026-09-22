@@ -1,25 +1,11 @@
 import type {
   ClientAssessment,
-  Deal,
   FindUsSource,
-  FollowUp,
-  FollowUpType,
   HotelCategory,
-  Lead,
   LeadSource,
   OTAPlatform,
   PackageRecommendation,
-  TeamMember,
 } from "./types";
-
-/**
- * Static reference data & the package recommendation engine.
- *
- * Production note: all hardcoded demo/sample data has been removed. Real
- * leads live in PostgreSQL (see `lib/store.ts` / `prisma/schema.prisma`) and
- * start from a 100% clean slate. `deals` and `followUps` stay empty until
- * their write flows land.
- */
 
 export const HOTEL_CATEGORIES: HotelCategory[] = [
   "Boutique Hotel",
@@ -166,25 +152,6 @@ export function calculateRecommendation(
 export const HOTLINE = "+94 78 860 7143";
 export const HOTLINE_TEL = "+94788607143";
 
-export const team: TeamMember[] = [
-  { name: "Ashan Silva", role: "Sales Manager" },
-  { name: "Nimmi Perera", role: "Sales Executive" },
-  { name: "Ravindu Fernando", role: "Sales Executive" },
-];
-
-/* ---------------- production data (starts 100% clean) ---------------- */
-
-/** Real leads are persisted in PostgreSQL — see `lib/store.ts`. */
-export const leads: Lead[] = [];
-
-/** Sales deals — empty until the deal write flow lands. */
-export const deals: Deal[] = [];
-
-/** Follow-ups — empty until the follow-up write flow lands. */
-export const followUps: FollowUp[] = [];
-
-/* ---------------- helpers ---------------- */
-
 export const sourceLabels: Record<LeadSource, string> = {
   facebook: "Facebook Lead Form",
   instagram: "Instagram",
@@ -192,12 +159,4 @@ export const sourceLabels: Record<LeadSource, string> = {
   website: "Website",
   walkin: "Walk-in / Referral",
   manual: "Manual Entry",
-};
-
-export const followUpLabels: Record<FollowUpType, string> = {
-  call: "Phone call",
-  whatsapp: "WhatsApp",
-  email: "Email",
-  meeting: "Meeting / Demo",
-  sms: "SMS",
 };

@@ -18,6 +18,3 @@ yarn-error.log*
 *.tsbuildinfo
 image-search/
 data/
-
-# Generated Prisma client (npm run db:generate / npm run build)
-lib/generated/

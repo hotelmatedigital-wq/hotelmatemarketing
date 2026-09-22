@@ -1,56 +1,99 @@
 # HOTEL MATE — Marketing Panel
 
-Next.js marketing panel for [Hotel Mate](https://www.hotelmate.co.uk/) — monitor social-media leads, manage the sales pipeline and track follow-ups.
+Next.js marketing panel for [Hotel Mate](https://www.hotelmate.co.uk/): capture genuine inquiries, complete property assessments and manage the sales pipeline.
 
-**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Prisma ORM 7 · PostgreSQL (Neon / Supabase / any Postgres) · lucide icons
-**Brand:** hotelmate.co.uk palette — primary `#00AEEF`, dark `#0C1E21`, neutral `#E5E5E5`
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase PostgreSQL · `postgres.js`
 
 ## Features
 
-- 📊 **Dashboard** — KPIs, recent leads, leads by source, today's follow-ups
-- 🎯 **Leads Management** — search + status/source filters, detail view with Call/WhatsApp/Send Form actions
-- 📝 **Intake Form (`/intake`) & WhatsApp Flow** — shareable public form; leads save instantly to the panel with prefilled WhatsApp deep-links
-- 📈 **Sales Pipeline** — kanban: Inquiry → Contacted → Negotiation → Won/Lost
-- ⏰ **Follow-ups** — overdue / today / upcoming with done toggles
-- ⚙️ **Settings** — Facebook Lead Ads, Hotel Mate PMS API, WhatsApp & Instagram integration cards
-- 🗄️ **Production database** — every generated lead & client assessment persists in PostgreSQL via Prisma (no demo data, no file storage)
+- **Dashboard** — metrics, recent records and source/status breakdowns derived from real leads
+- **Lead management** — manually add, search, filter, update and delete genuine inquiries
+- **Client intake (`/intake`)** — shareable assessment form with package recommendations and demo scheduling
+- **Sales pipeline** — persisted statuses shown from inquiry through won/lost
+- **WhatsApp flow** — personalized assessment links and pre-filled outreach messages
+- **No bundled demo records** — a new database starts empty
 
-## Production database (Vercel)
+## Prerequisites
 
-The panel starts **100% clean** — no sample leads, deals or follow-ups. Everything captured at runtime is saved to PostgreSQL, so it survives Vercel's ephemeral filesystem.
+- Node.js 22
+- A [Supabase](https://supabase.com/) project
+- A [Vercel](https://vercel.com/) project for deployment
 
-1. **Create a Postgres database** (any of these):
-   - [Neon](https://neon.tech) — create a project, copy the connection string
-   - [Supabase](https://supabase.com) — Project Settings → Database → **Session pooler** or direct connection string
-   - [Railway](https://railway.app) / self-hosted Postgres — any standard `postgresql://` URL
-2. **Add the environment variable** in Vercel → Project → Settings → Environment Variables:
-   ```bash
-   DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require"
-   ```
-3. **Deploy.** The build runs `prisma generate && prisma migrate deploy` automatically — schema migrations apply on every deploy. Builds fail fast if `DATABASE_URL` is missing, so real leads are never silently dropped.
+## Supabase setup
 
-Schema lives in [`prisma/schema.prisma`](prisma/schema.prisma) · migrations in [`prisma/migrations/`](prisma/migrations/).
+1. Create a Supabase project.
+2. In the Supabase dashboard, open **Connect** and copy the **Transaction pooler** PostgreSQL URI. Transaction pooling is appropriate for Vercel serverless functions.
+3. Keep that URI secret. Never use a `NEXT_PUBLIC_` variable for it and never commit it.
+4. Either:
+   - let Hotel Mate create the idempotent schema on its first runtime query; or
+   - run [`supabase/migrations/202609220001_create_leads.sql`](supabase/migrations/202609220001_create_leads.sql) in the Supabase SQL Editor before deployment.
 
-## Run
+The migration creates an empty `leads` table, indexes and a PostgreSQL sequence. It does **not** insert samples. The sequence assigns concurrency-safe public IDs beginning with `L-1001`.
+
+### Local environment
+
+Copy the template and insert the pooler URI locally:
 
 ```bash
-npm install
-cp .env.example .env     # then set DATABASE_URL to your Postgres
-npm run db:deploy        # apply schema migrations
-npm run dev              # http://localhost:3000
+cp .env.example .env.local
 ```
 
-Useful scripts:
+```dotenv
+DATABASE_URL="postgresql://postgres.PROJECT_REF:PASSWORD@YOUR_POOLER_HOST:6543/postgres?sslmode=require"
+```
 
-| Script | Purpose |
-| --- | --- |
-| `npm run db:deploy` | Apply pending migrations (also runs in the Vercel build) |
-| `npm run db:migrate` | Create a new migration from schema changes (local dev) |
-| `npm run db:studio` | Browse the database in Prisma Studio |
+If a password is inserted into a URI manually, percent-encode URI-reserved characters. The URI supplied by Supabase is preferred.
 
-## Docs
+Then run:
 
-Full plan, architecture & roadmap → [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
+```bash
+npm ci
+npm run dev
+```
+
+Open <http://localhost:3000>. If `DATABASE_URL` is missing, the panel shows setup guidance rather than silently writing temporary files.
+
+## Vercel deployment
+
+1. Import this GitHub repository into Vercel and keep the detected **Next.js** framework preset.
+2. In **Project Settings → Environment Variables**, add `DATABASE_URL` with the Supabase transaction-pooler URI.
+3. Enable it for **Production**, **Preview** and **Development** as needed.
+4. Deploy or redeploy after adding the variable.
+
+The PostgreSQL client is initialized lazily. `next build` does not connect to Supabase, so Vercel can compile the application before runtime secrets or database connectivity are available. Prepared statements are disabled for transaction-pooler compatibility.
+
+> GitHub Pages is not a supported target. This application needs Next.js server rendering and API route handlers; deploy it to Vercel.
+
+## Persistence architecture
+
+- `lib/db.ts` — server-only lazy PostgreSQL client and idempotent schema initialization
+- `lib/store.ts` — SQL repository for create, list, lookup, update, delete and assessment submission
+- `supabase/migrations/` — versioned SQL schema
+- `DATABASE_URL` — server-only connection secret
+
+Lead and assessment data is durable across restarts, deployments and Vercel serverless instances because Supabase—not the application filesystem—is the source of truth.
+
+## Quality checks
+
+```bash
+npm run lint       # ESLint + Next.js/React rules
+npm run typecheck  # TypeScript without emitting files
+npm test           # Node test suite
+npm run build      # Optimized production build
+npm run check      # Lint, type-check, tests and build
+npm audit          # Dependency vulnerability report
+```
+
+GitHub Actions runs `npm run check` on pushes and pull requests. A live SQL lifecycle test additionally requires a securely configured Supabase `DATABASE_URL`.
+
+## Security note
+
+The database secret is server-only and Supabase Row Level Security is enabled on the table. The application does not yet include operator authentication; add an authentication and authorization layer before exposing the marketing panel or mutation APIs on a public production domain.
+
+## Documentation
+
+Architecture and product flow: [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
 
 ---
+
 Owner contact: **+94 78 860 7143**
